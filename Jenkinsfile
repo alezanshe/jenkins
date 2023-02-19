@@ -1,52 +1,37 @@
 pipeline {
     agent any
     environment {
-        RELEASE='0.0.1'
+        VERSION = sh([ script: 'cd ./code/ && npx -c \'echo $npm_package_version\'', returnStdout: true ]).trim()
+        VERSION_RC = "rc.2"
     }
     stages {
+        stage('Audit tools') {
+            steps {
+                sh '''
+                    git version
+                    docker version
+                    node --version
+                    npm version
+                '''
+            }
+        }
         stage('Build') {
-            environment {
-                LOG_LEVEL='INFO'
-            }
-            parallel {
-                stage('linux-arm64') {
-                    steps {
-                        echo "Building release ${RELEASE} for ${STAGE_NAME} with log level ${LOG_LEVEL}..."
-                    }
-                }
-                stage('linux-amd64') {
-                    steps {
-                        echo "Building release ${RELEASE} for ${STAGE_NAME} with log level ${LOG_LEVEL}..."
-                    }
-                }
-                stage('windows-amd64') {
-                    steps {
-                        echo "Building release ${RELEASE} for ${STAGE_NAME} with log level ${LOG_LEVEL}..."
-                    }
-                }
-            }
-        }
-        stage('Test') {
             steps {
-                echo "Testing release ${RELEASE}..."
-            }
-        }
-        stage('Deploy') {
-            input {
-                message 'Deploy?'
-                ok 'Do it!'
-                parameters {
-                    string(name: 'TARGET_ENVIRONMENT', defaultValue: 'PROD', description: 'Target deployment environment')
+                dir('./code') {
+                    echo "Building version ${VERSION} with suffix: ${VERSION_RC}"
+                    sh '''
+                        npm install
+                        npm run build
+                    '''
                 }
             }
-            steps {
-                echo "Deploying release ${RELEASE} to environment ${TARGET_ENVIRONMENT}"
-            }
         }
-    }
-    post {
-        always {
-            echo 'Prints wether deploy happened or not, success or failure'
+        stage('Unit Test') {
+            steps {
+                dir('./code') {
+                    sh 'npm test'
+                }
+            }
         }
     }
 }
