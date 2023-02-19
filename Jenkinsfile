@@ -1,7 +1,7 @@
 pipeline {
     agent any
     environment {
-        VERSION = sh([ script: 'cd ./code/ && npx -c \'echo $npm_package_version\'', returnStdout: true ]).trim()
+        VERSION = sh([ script: 'cd ./code/solution && npx -c \'echo $npm_package_version\'', returnStdout: true ]).trim()
         VERSION_RC = "rc.2"
     }
     stages {
@@ -17,7 +17,7 @@ pipeline {
         }
         stage('Build') {
             steps {
-                dir('./code') {
+                dir('./code/solution') {
                     echo "Building version ${VERSION} with suffix: ${VERSION_RC}"
                     sh '''
                         npm install
@@ -28,7 +28,7 @@ pipeline {
         }
         stage('Unit Test') {
             steps {
-                dir('./code') {
+                dir('./code/solution') {
                     sh 'npm test'
                 }
             }
